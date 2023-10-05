@@ -262,7 +262,7 @@ public:
                                 ) / rho[j];
                         }
                         if constexpr (firstDerivativeApproxSchemeNum == 2) {
-                            vFirstDerivatives[i] += (prevV[i] - prevV[j]) *
+                            vFirstDerivatives[i] += (prevV[j] - prevV[i]) *
                                 dW<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
                                     prevXiSPH[j],
@@ -385,7 +385,7 @@ public:
                 xiSPH[i] = prevXiSPH[i] + request->tau * currV[i];
             }
 
-            computeResult +=
+            std::string log =
                 "n = " +
                 std::to_string(n) +
                 " (" +
@@ -395,6 +395,7 @@ public:
                 " (" +
                 std::to_string(request->timeMoment) +
                 ")\n";
+            std::cout << log;
         }
 
         double maxErrorV = 0.0l;
@@ -448,7 +449,7 @@ public:
         detailedDataBuffer << std::fixed << std::setprecision(16);
         size_t counter = 1;
         detailedDataBuffer << "# " << counter++ <<
-            ")  xi_SPH_g, " << indent << counter++ <<
+            ") xi_SPH_g, " << indent << counter++ <<
             ") an_v, " << counter++ << indent <<
             ") num_v" << "\n" << "#\n";
         double anV = 0.0l;
