@@ -247,7 +247,7 @@ void Kernel::compute() {
                 for (size_t j = 0; j < intN; j++) {
                     if constexpr (secondDerivativeApproxSchemeNum == 1) {
                         currV[i] += vFirstDerivatives[j] *
-                            dW<kernelType, dim, cN, oN>(
+                            dW<approximationKernelType, dim, cN, oN>(
                                 prevXiSPH[i],
                                 prevXiSPH[j],
                                 request->h
@@ -255,7 +255,7 @@ void Kernel::compute() {
                     }
                     if constexpr (secondDerivativeApproxSchemeNum == 2) {
                         currV[i] += (vFirstDerivatives[j] - vFirstDerivatives[i]) *
-                            dW<kernelType, dim, cN, oN>(
+                            dW<approximationKernelType, dim, cN, oN>(
                                 prevXiSPH[i],
                                 prevXiSPH[j],
                                 request->h
@@ -263,7 +263,7 @@ void Kernel::compute() {
                     }
                     if constexpr (secondDerivativeApproxSchemeNum == 3) {
                         currV[i] += (vFirstDerivatives[j] + vFirstDerivatives[i]) *
-                            dW<kernelType, dim, cN, oN>(
+                            dW<approximationKernelType, dim, cN, oN>(
                                 prevXiSPH[i],
                                 prevXiSPH[j],
                                 request->h
@@ -278,9 +278,74 @@ void Kernel::compute() {
         if constexpr (computeSchemeNum == 2) {
             for (size_t i = 0; i < intN; i++) {
                 currV[i] = 0.0l;
-                //TODO
+                for (size_t j = 0; j < intN; j++) {
+                    if constexpr (otherApproxVariant == 1) {
+                        currV[i] += prevV[j] *
+                            d2W<approximationKernelType, dim, cN, oN>(
+                                prevXiSPH[i],
+                                prevXiSPH[j],
+                                request->h
+                            ) / rho[j];
+                    }
+                    if constexpr (otherApproxVariant == 2) {
+                        currV[i] += (prevV[j] - prevV[i]) *
+                            d2W<approximationKernelType, dim, cN, oN>(
+                                prevXiSPH[i],
+                                prevXiSPH[j],
+                                request->h
+                            ) / rho[j];
+                    }
+                    if constexpr (otherApproxVariant == 3) {
+                        currV[i] += (prevV[j] + prevV[i]) *
+                            d2W<approximationKernelType, dim, cN, oN>(
+                                prevXiSPH[i],
+                                prevXiSPH[j],
+                                request->h
+                            ) / rho[j];
+                    }
+                }
+                currV[i] *= request->tau * pow(request->a, 2) * m;
+                currV[i] += prevV[i];
             }
         }
+        if constexpr (computeSchemeNum == 3) {
+            for (size_t i = 0; i < intN; i++) {
+                currV[i] = 0.0l;
+                for (size_t j = 0; j < intN; j++) {
+                    if (j != i) {
+                        currV[i] += (prevV[i] - prevV[j]) *
+                            dW<approximationKernelType, dim, cN, oN>(
+                                prevXiSPH[i],
+                                prevXiSPH[j],
+                                request->h
+                            ) / ((prevXiSPH[i] - prevXiSPH[j]) * rho[j])
+                    }
+                }
+                currV[i] *= 2.0l * request->tau * pow(a, 2) * m;
+                currV[i] += prevV[i];
+            }
+        }
+        if constexpr (computeSchemeNum == 4) {
+            for (size_t i = 0; i < intN; i++) {
+                currV[i] = 0.0l;
+                for (size_t j = 0; j < intN; j++) {
+                    currV[i] += (prevV[i] - prevV[j]) *
+                        (prevXiSPH[i] - prevXiSPH[j]) *
+                        dW<approximationKernelType, dim, cN, oN>(
+                            prevXiSPH[i],
+                            prevXiSPH[j],
+                            request->h
+                        ) / ((pow(prevXiSPH[i] - prevXiSPH[j], 2) + etaSquared) * rho[j]);
+                }
+                currV[i] *= 2.0l * request->tau * pow(a, 2) * m;
+                currV[i] += prevV[i];
+            }
+        }
+
+        for (size_t i = 0; i < intN; i++) {
+            xiSPH[i] = prevXiSPH[i] + request->tau * currV[i];
+        }
+
     }
 
     delete[] prevV;
