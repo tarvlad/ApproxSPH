@@ -35,8 +35,13 @@ public:
 
     template <
         KernelType approximationKernelType,
+        size_t dim,
+        size_t cN,
+        size_t oN,
+        size_t computeSchemeNum,
         size_t firstDerivativeApproxSchemeNum,
-        size_t secondDerivativeApproxSchemeNum
+        size_t secondDerivativeApproxSchemeNum,
+        size_t otherApproxVariant
     >
     void compute();
 };
