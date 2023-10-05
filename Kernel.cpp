@@ -3,6 +3,10 @@
 #include <cmath>
 #include <utility>
 #include "WendlandKernels.hpp"
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+
 
 using namespace ApproxSPH;
 
@@ -318,10 +322,10 @@ void Kernel::compute() {
                                 prevXiSPH[i],
                                 prevXiSPH[j],
                                 request->h
-                            ) / ((prevXiSPH[i] - prevXiSPH[j]) * rho[j])
+                            ) / ((prevXiSPH[i] - prevXiSPH[j]) * rho[j]);
                     }
                 }
-                currV[i] *= 2.0l * request->tau * pow(a, 2) * m;
+                currV[i] *= 2.0l * request->tau * pow(request->a, 2) * m;
                 currV[i] += prevV[i];
             }
         }
@@ -337,7 +341,7 @@ void Kernel::compute() {
                             request->h
                         ) / ((pow(prevXiSPH[i] - prevXiSPH[j], 2) + etaSquared) * rho[j]);
                 }
-                currV[i] *= 2.0l * request->tau * pow(a, 2) * m;
+                currV[i] *= 2.0l * request->tau * pow(request->a, 2) * m;
                 currV[i] += prevV[i];
             }
         }
@@ -346,7 +350,91 @@ void Kernel::compute() {
             xiSPH[i] = prevXiSPH[i] + request->tau * currV[i];
         }
 
+        computeResult += 
+            "n = " + 
+            std::to_string(n) + 
+            " (" +
+            std::to_string(nTime) +
+            ") complete, time = " +
+            std::to_string(request->tau * n) +
+            " (" +
+            std::to_string(request->timeMoment) +
+            ")\n";
     }
+
+    double maxErrorV = 0.0l;
+    for (size_t i = 0; i < intN; i++) {
+        if (0.0l <= xiSPH[i] && xiSPH[i] <= 1.0l) {
+            double error = abs(
+                currV[i] - solutionBurgers(
+                    xiSPH[i], 
+                    request->timeMoment, 
+                    request->u0, 
+                    request->k, 
+                    request->a)
+            );
+            if (error > maxErrorV) {
+                maxErrorV = error;
+            }
+        }
+    }
+
+    double K = pow(request->h, -1);
+    double phi = pow(request->nGasParticlesPerUnitSide * request->h, -1);
+    computeResult += "\n";
+    computeResult += 
+        "h = " + 
+        std::to_string(request->h) + 
+        ", N = " + 
+        std::to_string(request->nGasParticlesPerUnitSide) + 
+        "\n";
+    computeResult +=
+        "K = " +
+        std::to_string(K) +
+        ", log(K) = " +
+        std::to_string(log10(K)) +
+        "\n";
+    computeResult +=
+        "phi = " +
+        std::to_string(phi) +
+        ", log(phi) = " +
+        std::to_string(log10(phi)) +
+        "\n";
+    computeResult +=
+        "Final maximum speed error (I) = " +
+        std::to_string(maxErrorV) +
+        ", log(I) = " +
+        std::to_string(log10(maxErrorV)) +
+        "\n";
+    computeResult += "\n";
+
+    constexpr static auto indent = "  ";
+    std::stringstream detailedDataBuffer;
+    detailedDataBuffer << std::fixed << std::setprecision(16);
+    size_t counter = 1;
+    detailedDataBuffer << "# " << counter++ <<
+        ")  xi_SPH_g, " << indent << counter++ <<
+        ") an_v, " << counter++ << indent <<
+        ") num_v" << "\n" << "#\n";
+    double anV = 0.0l;
+    for (size_t i = 0; i < intN; i++) {
+        anV = solutionBurgers(
+            xiSPH[i],
+            request->timeMoment,
+            request->u0,
+            request->k,
+            request->a
+        );
+        detailedDataBuffer <<
+            xiSPH[i] <<
+            " " <<
+            anV <<
+            " " <<
+            currV[i] <<
+            "\n";
+    }
+    computeResult += detailedDataBuffer.str();
+    detailedDataBuffer.clear();
 
     delete[] prevV;
     delete[] currV;
@@ -354,4 +442,6 @@ void Kernel::compute() {
     delete[] xiSPH;
     delete[] prevXiSPH;
     delete[] rho;
+
+    computeResult += "Finish\n";
 }

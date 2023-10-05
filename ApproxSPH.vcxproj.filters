@@ -26,9 +26,6 @@
     <ClInclude Include="Request.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Output.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Kernel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

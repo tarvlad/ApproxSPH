@@ -140,7 +140,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kernel.hpp" />
-    <ClInclude Include="Output.hpp" />
     <ClInclude Include="Request.hpp" />
     <ClInclude Include="WendlandKernels.hpp" />
   </ItemGroup>

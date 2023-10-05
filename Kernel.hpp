@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Request.hpp"
-#include "Output.hpp"
 #include <cmath>
+#include <string>
 
 
 namespace ApproxSPH {
@@ -13,10 +13,10 @@ enum KernelType {
 };
 
 
-/// Kernel DO NOT control request and output lifetime
+/// Kernel DO NOT control request lifetime
 class Kernel {
     Request *request;
-    Output *output;
+    std::string computeResult;
 
     double solutionBurgers(
         double x,
@@ -29,8 +29,12 @@ class Kernel {
     }
 
 public:
-    Kernel(Request *request, Output *output) :
-            request(request), output(output) {
+    Kernel(Request *request) :
+            request(request) {
+    }
+
+    const std::string &getComputeRes() const {
+        return computeResult;
     }
 
     template <
