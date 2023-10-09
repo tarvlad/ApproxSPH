@@ -11,7 +11,7 @@ int main() {
     request.nGasParticlesPerUnitSide = 1000;
     request.h = 0.1l;
     request.tau = pow(10.0l, -8);
-    request.timeMoment = 1000.0l * request.tau;
+    request.timeMoment = pow(10.0l, -5);
     request.initRho = 1.0l;
     request.u0 = 0.1l;
     request.k = 2.0l * acos(-1.0l);
@@ -19,7 +19,7 @@ int main() {
     request.etaSquaredParam = 0.001l;
 
     Kernel kernel(&request);
-    kernel.compute<WENDLAND, 1, 4, 2, 3, 0, 0, 0>();
+    kernel.computeThirdScheme<KernelType::WENDLAND, 1, 4, 2>();
     freopen("output.txt", "w", stdout);
     std::cout << kernel.getComputeRes() << std::endl;
 

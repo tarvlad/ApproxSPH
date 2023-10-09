@@ -14,6 +14,15 @@
 namespace ApproxSPH {
 
 
+template <typename T>
+std::string toStrWithPrecision(T val, size_t n) {
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << val;
+    return std::move(out).str();
+}
+
+
 enum KernelType {
     WENDLAND
 };
@@ -31,7 +40,7 @@ class Kernel {
         double k,
         double a
     ) {
-        return u0 * cos(k * x) + exp(-pow(a * k, 2) * t);
+        return u0 * cos(k * x) * exp(-pow(a * k, 2) * t);
     }
 
 
@@ -179,7 +188,68 @@ private:
 
         return y;
     }
+
+
 public:
+    template <
+        KernelType approximationKernelType,
+        size_t dim,
+        size_t cN,
+        size_t oN,
+        size_t firstDerivativeApproxSchemeNum,
+        size_t secondDerivativeApproxSchemeNum
+    >
+    void computeFirstScheme() {
+        compute<
+            approximationKernelType, 
+            dim, 
+            cN, 
+            oN,
+            1,
+            firstDerivativeApproxSchemeNum,
+            secondDerivativeApproxSchemeNum,
+            0
+        >();
+    }
+
+
+    template <
+        KernelType approximationKernelType,
+        size_t dim,
+        size_t cN,
+        size_t oN,
+        size_t approxSchemeNum
+    >
+    void computeSecondScheme() {
+        compute<
+            approximationKernelType,
+            dim,
+            cN,
+            oN,
+            2,
+            0, 0,
+            approxSchemeNum
+        >();
+    }
+
+
+    template <
+        KernelType approximationKernelType,
+        size_t dim,
+        size_t cN,
+        size_t oN
+    >
+    void computeThirdScheme() {
+        compute<
+            approximationKernelType,
+            dim,
+            cN,
+            oN,
+            3,
+            0, 0, 0
+        >();
+    }
+
 
     template <
         KernelType approximationKernelType,
@@ -187,11 +257,12 @@ public:
         size_t cN,
         size_t oN,
         size_t computeSchemeNum,
-        size_t firstDerivativeApproxSchemeNum,
-        size_t secondDerivativeApproxSchemeNum,
-        size_t otherApproxVariant
+        size_t firstSchemeFirstDerivativeApproxSchemeNum,
+        size_t firstSchemeSecondDerivativeApproxSchemeNum,
+        size_t secondSchemeApproxVariant
     >
     void compute() {
+        size_t requiredPrecision = 16;
         double n = std::ceil(request->nGasParticlesPerUnitSide *
             (request->rightBorder - request->leftBorder));
 
@@ -253,7 +324,7 @@ public:
                 for (size_t i = 0; i < intN; i++) {
                     vFirstDerivatives[i] = 0.0l;
                     for (size_t j = 0; j < intN; j++) {
-                        if constexpr (firstDerivativeApproxSchemeNum == 1) {
+                        if constexpr (firstSchemeFirstDerivativeApproxSchemeNum == 1) {
                             vFirstDerivatives[i] += prevV[j] *
                                 dW<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -261,7 +332,7 @@ public:
                                     request->h
                                 ) / rho[j];
                         }
-                        if constexpr (firstDerivativeApproxSchemeNum == 2) {
+                        if constexpr (firstSchemeFirstDerivativeApproxSchemeNum == 2) {
                             vFirstDerivatives[i] += (prevV[j] - prevV[i]) *
                                 dW<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -269,7 +340,7 @@ public:
                                     request->h
                                 ) / rho[j];
                         }
-                        if constexpr (firstDerivativeApproxSchemeNum == 3) {
+                        if constexpr (firstSchemeFirstDerivativeApproxSchemeNum == 3) {
                             vFirstDerivatives[i] += (prevV[j] + prevV[i]) *
                                 dW<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -284,7 +355,7 @@ public:
                 for (size_t i = 0; i < intN; i++) {
                     currV[i] = 0.0l;
                     for (size_t j = 0; j < intN; j++) {
-                        if constexpr (secondDerivativeApproxSchemeNum == 1) {
+                        if constexpr (firstSchemeSecondDerivativeApproxSchemeNum == 1) {
                             currV[i] += vFirstDerivatives[j] *
                                 dW<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -292,7 +363,7 @@ public:
                                     request->h
                                 ) / rho[j];
                         }
-                        if constexpr (secondDerivativeApproxSchemeNum == 2) {
+                        if constexpr (firstSchemeSecondDerivativeApproxSchemeNum == 2) {
                             currV[i] += (vFirstDerivatives[j] - vFirstDerivatives[i]) *
                                 dW<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -300,7 +371,7 @@ public:
                                     request->h
                                 ) / rho[j];
                         }
-                        if constexpr (secondDerivativeApproxSchemeNum == 3) {
+                        if constexpr (firstSchemeSecondDerivativeApproxSchemeNum == 3) {
                             currV[i] += (vFirstDerivatives[j] + vFirstDerivatives[i]) *
                                 dW<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -318,7 +389,7 @@ public:
                 for (size_t i = 0; i < intN; i++) {
                     currV[i] = 0.0l;
                     for (size_t j = 0; j < intN; j++) {
-                        if constexpr (otherApproxVariant == 1) {
+                        if constexpr (secondSchemeApproxVariant == 1) {
                             currV[i] += prevV[j] *
                                 d2W<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -326,7 +397,7 @@ public:
                                     request->h
                                 ) / rho[j];
                         }
-                        if constexpr (otherApproxVariant == 2) {
+                        if constexpr (secondSchemeApproxVariant == 2) {
                             currV[i] += (prevV[j] - prevV[i]) *
                                 d2W<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -334,7 +405,7 @@ public:
                                     request->h
                                 ) / rho[j];
                         }
-                        if constexpr (otherApproxVariant == 3) {
+                        if constexpr (secondSchemeApproxVariant == 3) {
                             currV[i] += (prevV[j] + prevV[i]) *
                                 d2W<approximationKernelType, dim, cN, oN>(
                                     prevXiSPH[i],
@@ -387,13 +458,13 @@ public:
 
             std::string log =
                 "n = " +
-                std::to_string(n) +
+                toStrWithPrecision(n, requiredPrecision) +
                 " (" +
-                std::to_string(nTime) +
+                toStrWithPrecision(nTime, requiredPrecision) +
                 ") complete, time = " +
-                std::to_string(request->tau * n) +
+                toStrWithPrecision(request->tau * n, requiredPrecision) +
                 " (" +
-                std::to_string(request->timeMoment) +
+                toStrWithPrecision(request->timeMoment, requiredPrecision) +
                 ")\n";
             std::cout << log;
         }
@@ -420,27 +491,27 @@ public:
         computeResult += "\n";
         computeResult +=
             "h = " +
-            std::to_string(request->h) +
+            toStrWithPrecision(request->h, requiredPrecision) +
             ", N = " +
-            std::to_string(request->nGasParticlesPerUnitSide) +
+            toStrWithPrecision(request->nGasParticlesPerUnitSide, requiredPrecision) +
             "\n";
         computeResult +=
             "K = " +
-            std::to_string(K) +
+            toStrWithPrecision(K, requiredPrecision) +
             ", log(K) = " +
-            std::to_string(log10(K)) +
+            toStrWithPrecision(log10(K), requiredPrecision) +
             "\n";
         computeResult +=
             "phi = " +
-            std::to_string(phi) +
+            toStrWithPrecision(phi, requiredPrecision) +
             ", log(phi) = " +
-            std::to_string(log10(phi)) +
+            toStrWithPrecision(log10(phi), requiredPrecision) +
             "\n";
         computeResult +=
             "Final maximum speed error (I) = " +
-            std::to_string(maxErrorV) +
+            toStrWithPrecision(maxErrorV, requiredPrecision) +
             ", log(I) = " +
-            std::to_string(log10(maxErrorV)) +
+            toStrWithPrecision(log10(maxErrorV), requiredPrecision) +
             "\n";
         computeResult += "\n";
 
