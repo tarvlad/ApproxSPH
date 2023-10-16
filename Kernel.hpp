@@ -32,6 +32,7 @@ enum KernelType {
 class Kernel {
     Request *request;
     std::string computeResult;
+    std::string computeResultForGraph;
 
     double solutionBurgers(
         double x,
@@ -52,6 +53,11 @@ public:
 
     const std::string &getComputeRes() const {
         return computeResult;
+    }
+
+
+    const std::string &getComputeResForGraph() const {
+        return computeResultForGraph;
     }
 
 private:
@@ -95,6 +101,13 @@ private:
                 if constexpr (oN == 4) {
                     if constexpr (kernelType == WENDLAND) {
                         y = WendlandKernels::WD1C4O4(q, h);
+                    }
+                }
+            }
+            if constexpr (cN == 6) {
+                if constexpr (oN == 4) {
+                    if constexpr (kernelType == WENDLAND) {
+                        y = WendlandKernels::WD1C6O4(q, h);
                     }
                 }
             }
@@ -144,6 +157,13 @@ private:
                     }
                 }
             }
+            if constexpr (cN == 6) {
+                if constexpr (oN == 4) {
+                    if constexpr (kernelType == WENDLAND) {
+                        y = WendlandKernels::dWD1C6O4(x, x0, q, h);
+                    }
+                }
+            }
         }
 
         return y;
@@ -181,6 +201,13 @@ private:
                 if constexpr (oN == 4) {
                     if constexpr (kernelType == WENDLAND) {
                         y = WendlandKernels::d2WD1C4O4(q, h);
+                    }
+                }
+            }
+            if constexpr (cN == 6) {
+                if constexpr (oN == 4) {
+                    if constexpr (kernelType == WENDLAND) {
+                        y = WendlandKernels::d2WD1C6O4(q, h);
                     }
                 }
             }
@@ -418,6 +445,7 @@ public:
                     currV[i] += prevV[i];
                 }
             }
+            ////////////////////////////////////////////////////////////////////////////
             if constexpr (computeSchemeNum == 3) {
                 for (size_t i = 0; i < intN; i++) {
                     currV[i] = 0.0l;
@@ -435,6 +463,7 @@ public:
                     currV[i] += prevV[i];
                 }
             }
+            ////////////////////////////////////////////////////////////////////////////
             if constexpr (computeSchemeNum == 4) {
                 for (size_t i = 0; i < intN; i++) {
                     currV[i] = 0.0l;
@@ -519,10 +548,10 @@ public:
         std::stringstream detailedDataBuffer;
         detailedDataBuffer << std::fixed << std::setprecision(16);
         size_t counter = 1;
-        detailedDataBuffer << "# " << counter++ <<
+        detailedDataBuffer << counter++ <<
             ") xi_SPH_g, " << indent << counter++ <<
-            ") an_v, " << counter++ << indent <<
-            ") num_v" << "\n" << "#\n";
+            ") an_v, " << indent << counter++ <<
+            ") num_v" << "\n";
         double anV = 0.0l;
         for (size_t i = 0; i < intN; i++) {
             anV = solutionBurgers(
@@ -534,13 +563,13 @@ public:
             );
             detailedDataBuffer <<
                 xiSPH[i] <<
-                " " <<
+                ", " <<
                 anV <<
-                " " <<
+                ", " <<
                 currV[i] <<
                 "\n";
         }
-        computeResult += detailedDataBuffer.str();
+        computeResultForGraph += detailedDataBuffer.str();
         detailedDataBuffer.clear();
 
         delete[] prevV;

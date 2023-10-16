@@ -91,6 +91,35 @@ double d2WD1C4O4(double q, double h) {
 }
 
 
+double WD1C6O4(double q, double h) {
+    double y = 429.0l / (160.0l * h);
+    y *= pow((q - 1.0l), 7);
+    y *= (7.0l * pow(q, 2) - 1.0l);
+    y *= (21.0l * pow(q, 3) + 19.0l * pow(q, 2) + 7.0l * q + 1.0l);
+    return y;
+}
+
+
+double dWD1C6O4(double x, double x0, double q, double h) {
+    double y = 429.0l / (40.0l * h);
+    y *= (x - x0) / (h * abs(x - x0));
+    y *= q;
+    y *= pow((q - 1.0l), 6);
+    y *= 441.0l * pow(q, 4) + 182.0l * pow(q, 3) - 63.0l * pow(q, 2) - 
+        48.0l * q - 8.0l;
+    return y;
+}
+
+
+double d2WD1C6O4(double q, double h) {
+    double y = 429.0l / (40 * pow(h, 2));
+    y *= pow((q - 1.0l), 5);
+    y *= 4851.0l * pow(q, 5) - 385.0l * pow(q, 4) - 1295.0l * pow(q, 3) -
+        195.0l * pow(q, 2) + 40.0l * q + 8.0l;
+    return y;
+}
+
+
 }
 
 }
